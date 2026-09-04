@@ -11,6 +11,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { PERSONAL_INFO } from '../data/portfolioData';
+import { PersonalInfo } from '../types';
 import GitHubMetricsSummary from './GitHubMetricsSummary';
 
 interface NavigationProps {
@@ -21,6 +22,8 @@ interface NavigationProps {
   onOpenSettings: () => void;
   onOpenShortcuts: () => void;
   onShowToast?: (msg: string) => void;
+  onSyncAll?: () => Promise<void> | void;
+  personalInfo?: PersonalInfo;
 }
 
 export default function Navigation({
@@ -31,6 +34,8 @@ export default function Navigation({
   onOpenSettings,
   onOpenShortcuts,
   onShowToast,
+  onSyncAll,
+  personalInfo = PERSONAL_INFO,
 }: NavigationProps) {
   const navItems = [
     { id: 'root', label: 'root' },
@@ -82,7 +87,7 @@ export default function Navigation({
         {/* Right: GitHub telemetry summary & Quick actions */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Dynamic GitHub metrics summary */}
-          <GitHubMetricsSummary onShowToast={onShowToast} />
+          <GitHubMetricsSummary onShowToast={onShowToast} onSyncAll={onSyncAll} />
 
           <button
             onClick={onOpenCommandPalette}

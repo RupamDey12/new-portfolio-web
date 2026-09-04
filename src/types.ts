@@ -1,5 +1,42 @@
 export type ProjectCategory = 'ALL' | 'GITHUB' | 'AI_ML' | 'SYSTEMS' | 'WEB' | 'TYPESCRIPT';
 
+export interface PersonalInfo {
+  handle: string;
+  name: string;
+  role: string;
+  command: string;
+  bio: string;
+  email: string;
+  github: string;
+  githubUsername: string;
+  avatarUrl: string;
+  fallbackAvatarUrl: string;
+  linkedin: string;
+  status: string;
+  location: string;
+  publicRepos?: number;
+  followers?: number;
+  following?: number;
+  blog?: string;
+  updatedAt?: string;
+  isLiveGithub?: boolean;
+}
+
+export interface GitHubProfileData {
+  login: string;
+  name: string;
+  avatarUrl: string;
+  bio: string;
+  location: string;
+  blog: string;
+  publicRepos: number;
+  followers: number;
+  following: number;
+  htmlUrl: string;
+  updatedAt: string;
+  isLive: boolean;
+}
+
 export interface Project {
   id: string;
   title: string;

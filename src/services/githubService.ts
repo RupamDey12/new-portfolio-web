@@ -1,4 +1,4 @@
-import { Project } from '../types';
+import { Project, GitHubProfileData } from '../types';
 
 export interface RawGitHubRepo {
   id: number;
@@ -25,6 +25,9 @@ const LANGUAGE_COLORS: Record<string, string> = {
   C: '#555555',
   Rust: '#dea584',
   Go: '#00ADD8',
+  Shell: '#89e051',
+  Ruby: '#701516',
+  Java: '#b07219',
 };
 
 const REPO_DESCRIPTIONS: Record<string, { desc: string; subtitle: string; badge: string }> = {
@@ -49,34 +52,68 @@ export function transformGitHubRepo(repo: RawGitHubRepo): Project {
   const customMeta: { desc?: string; subtitle?: string; badge?: string } = REPO_DESCRIPTIONS[repo.name] || {};
   const language = repo.language || 'TypeScript';
   const languageColor = LANGUAGE_COLORS[language] || '#00F3FF';
+  const topics = repo.topics || [];
+  const nameLower = repo.name.toLowerCase();
+  const descLower = (repo.description || '').toLowerCase();
 
+  // Intelligent category determination
   let category: Project['category'] = 'GITHUB';
-  if (repo.name === 'chatting') category = 'AI_ML';
-  else if (repo.name.toLowerCase().includes('student')) category = 'SYSTEMS';
-  else if (language === 'JavaScript' || language === 'HTML' || language === 'CSS') category = 'WEB';
+  if (
+    topics.some((t) => t.includes('ai') || t.includes('ml') || t.includes('llm') || t.includes('agent')) ||
+    nameLower.includes('chat') ||
+    nameLower.includes('ai') ||
+    descLower.includes('ai') ||
+    descLower.includes('llm')
+  ) {
+    category = 'AI_ML';
+  } else if (
+    topics.some((t) => t.includes('cli') || t.includes('system') || t.includes('tool')) ||
+    nameLower.includes('student') ||
+    nameLower.includes('cli') ||
+    nameLower.includes('system') ||
+    language === 'Python' ||
+    language === 'C++' ||
+    language === 'Rust' ||
+    language === 'Go' ||
+    language === 'C'
+  ) {
+    category = 'SYSTEMS';
+  } else if (
+    language === 'JavaScript' ||
+    language === 'TypeScript' ||
+    language === 'HTML' ||
+    language === 'CSS' ||
+    nameLower.includes('web') ||
+    nameLower.includes('portfolio')
+  ) {
+    category = 'WEB';
+  }
+
+  // Priority to user's actual GitHub repository description if present
+  const liveDesc = repo.description?.trim();
+  const finalDescription = liveDesc || customMeta.desc || `Official public repository for ${repo.name} maintained by @RupamDey12 on GitHub.`;
+  const finalSubtitle = liveDesc ? `// ${liveDesc}` : (customMeta.subtitle || `// ${language} Repository`);
+  const finalBadge = topics[0] ? topics[0].toUpperCase() : (customMeta.badge || (repo.language ? repo.language.toUpperCase() : 'REPO'));
 
   return {
     id: `gh-${repo.id}`,
     title: repo.name,
-    badge: customMeta.badge || (repo.language ? repo.language.toUpperCase() : 'REPO'),
-    version: repo.default_branch,
+    badge: finalBadge,
+    version: repo.default_branch || 'main',
     stars: repo.stargazers_count,
     forks: repo.forks_count,
     iconType: 'github',
-    subtitle: customMeta.subtitle || (repo.description ? `// ${repo.description}` : `// ${language} Repository`),
-    description:
-      customMeta.desc ||
-      repo.description ||
-      `Official public repository for ${repo.name} maintained by @RupamDey12 on GitHub.`,
+    subtitle: finalSubtitle,
+    description: finalDescription,
     language,
     languageColor,
     category,
     githubUrl: repo.html_url,
-    defaultBranch: repo.default_branch,
+    defaultBranch: repo.default_branch || 'main',
     updatedAt: repo.updated_at,
     isLiveGithub: true,
     primaryAction: {
-      label: 'inspect',
+      label: repo.homepage ? 'live demo' : 'inspect',
       type: 'repo',
     },
   };
@@ -84,6 +121,28 @@ export function transformGitHubRepo(repo: RawGitHubRepo): Project {
 
 // Fallback pre-fetched cache in case of GitHub rate limiting (60 req/hr unauthenticated)
 export const GITHUB_FALLBACK_REPOS: Project[] = [
+  {
+    id: 'gh-new-portfolio-web',
+    title: 'new-portfolio-web',
+    badge: 'TYPESCRIPT',
+    version: 'main',
+    stars: 0,
+    forks: 0,
+    iconType: 'github',
+    subtitle: '// Cyber-Themed Developer Portfolio',
+    description: 'High-performance interactive developer portfolio featuring real-time GitHub telemetry, WebGL matrix shaders, and terminal shell.',
+    language: 'TypeScript',
+    languageColor: '#3178c6',
+    category: 'WEB',
+    githubUrl: 'https://github.com/RupamDey12/new-portfolio-web',
+    defaultBranch: 'main',
+    updatedAt: new Date().toISOString(),
+    isLiveGithub: true,
+    primaryAction: {
+      label: 'inspect',
+      type: 'repo',
+    },
+  },
   {
     id: 'gh-1056959859',
     title: 'chatting',
@@ -156,20 +215,83 @@ export const GITHUB_FALLBACK_REPOS: Project[] = [
 ];
 
 export async function fetchGitHubRepos(username: string = 'RupamDey12'): Promise<Project[]> {
+  const cacheKey = `gh_repos_${username}`;
   try {
-    const res = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`);
+    const res = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated&t=${Date.now()}`);
     if (!res.ok) {
-      console.warn(`GitHub API returned status ${res.status}. Utilizing cached fallback.`);
+      console.warn(`GitHub API returned status ${res.status}. Checking cached repos.`);
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
       return GITHUB_FALLBACK_REPOS;
     }
     const data: RawGitHubRepo[] = await res.json();
     if (!Array.isArray(data) || data.length === 0) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
       return GITHUB_FALLBACK_REPOS;
     }
-    return data.map(transformGitHubRepo);
+    const projects = data.map(transformGitHubRepo);
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(projects));
+    } catch {
+      // Ignore quota
+    }
+    return projects;
   } catch (err) {
-    console.warn('Failed to fetch from GitHub API directly, using preloaded cluster data', err);
+    console.warn('Failed to fetch from GitHub API directly, using cached or fallback data', err);
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {}
     return GITHUB_FALLBACK_REPOS;
+  }
+}
+
+export async function fetchGitHubUserProfile(username: string = 'RupamDey12'): Promise<GitHubProfileData | null> {
+  const cacheKey = `gh_user_profile_${username}`;
+  let cached: GitHubProfileData | null = null;
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) cached = JSON.parse(raw);
+  } catch {}
+
+  try {
+    const res = await fetch(`https://api.github.com/users/${username}?t=${Date.now()}`);
+    if (!res.ok) {
+      return cached;
+    }
+    const u = await res.json();
+    if (!u || !u.login) return cached;
+
+    // Cache-busting timestamp for profile avatar: whenever profile updates, browser gets fresh image
+    const updateTimestamp = u.updated_at ? new Date(u.updated_at).getTime() : Date.now();
+    const avatarUrl = u.avatar_url 
+      ? `${u.avatar_url}${u.avatar_url.includes('?') ? '&' : '?'}v=${updateTimestamp}`
+      : `https://github.com/${username}.png?size=200&v=${updateTimestamp}`;
+
+    const profileData: GitHubProfileData = {
+      login: u.login,
+      name: u.name?.trim() || 'Rupam Dey',
+      avatarUrl,
+      bio: u.bio?.trim() || '',
+      location: u.location?.trim() || 'Global / Remote',
+      blog: u.blog?.trim() || '',
+      publicRepos: typeof u.public_repos === 'number' ? u.public_repos : 4,
+      followers: typeof u.followers === 'number' ? u.followers : 0,
+      following: typeof u.following === 'number' ? u.following : 0,
+      htmlUrl: u.html_url || `https://github.com/${username}`,
+      updatedAt: u.updated_at || new Date().toISOString(),
+      isLive: true,
+    };
+
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(profileData));
+    } catch {}
+
+    return profileData;
+  } catch (e) {
+    console.warn('Could not fetch GitHub user profile:', e);
+    return cached;
   }
 }
 

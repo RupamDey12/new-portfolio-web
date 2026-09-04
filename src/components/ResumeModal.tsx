@@ -1,16 +1,23 @@
 import React from 'react';
 import { X, Download, Printer, ExternalLink, Mail, MapPin } from 'lucide-react';
 import { PERSONAL_INFO, EXPERIENCE_DATA, SKILLS_DATA, PROJECTS_DATA } from '../data/portfolioData';
-import { Project } from '../types';
+import { Project, PersonalInfo } from '../types';
 
 interface ResumeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onShowToast: (msg: string) => void;
   projects?: Project[];
+  personalInfo?: PersonalInfo;
 }
 
-export default function ResumeModal({ isOpen, onClose, onShowToast, projects }: ResumeModalProps) {
+export default function ResumeModal({ 
+  isOpen, 
+  onClose, 
+  onShowToast, 
+  projects,
+  personalInfo = PERSONAL_INFO,
+}: ResumeModalProps) {
   if (!isOpen) return null;
 
   const activeProjects = projects && projects.length > 0 ? projects : PROJECTS_DATA;
@@ -22,14 +29,14 @@ export default function ResumeModal({ isOpen, onClose, onShowToast, projects }: 
   const handleDownload = () => {
     // Generate simple text download of curriculum vitae
     const textContent = `
-RUPAM DEY
-${PERSONAL_INFO.role}
-Email: ${PERSONAL_INFO.email} | GitHub: ${PERSONAL_INFO.github} | LinkedIn: ${PERSONAL_INFO.linkedin}
+${personalInfo.name.toUpperCase()}
+${personalInfo.role}
+Email: ${personalInfo.email} | GitHub: ${personalInfo.github} | LinkedIn: ${personalInfo.linkedin}
 
 =======================================================
 SUMMARY
 =======================================================
-${PERSONAL_INFO.bio}
+${personalInfo.bio}
 
 =======================================================
 EXPERIENCE & EDUCATION
@@ -77,7 +84,7 @@ ${SKILLS_DATA.map((s) => `${s.comment}: ${s.title}`).join('\n')}
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-[#00FF41] rounded-full" />
             <span className="font-bold text-white tracking-wider">
-              CURRICULUM VITAE // {PERSONAL_INFO.name.toUpperCase()}
+              CURRICULUM VITAE // {personalInfo.name.toUpperCase()}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -110,20 +117,20 @@ ${SKILLS_DATA.map((s) => `${s.comment}: ${s.title}`).join('\n')}
           <div className="border-b border-white/10 pb-5 flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-display tracking-tight mb-1">
-                {PERSONAL_INFO.name}
+                {personalInfo.name}
               </h1>
-              <div className="text-sm text-[#00FF41] mb-2">{PERSONAL_INFO.role}</div>
+              <div className="text-sm text-[#00FF41] mb-2">{personalInfo.role}</div>
               <div className="flex flex-wrap items-center gap-4 text-gray-400 text-xs">
                 <span className="flex items-center gap-1">
                   <Mail className="w-3.5 h-3.5 text-[#00F3FF]" />
-                  {PERSONAL_INFO.email}
+                  {personalInfo.email}
                 </span>
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-[#00FF41]" />
-                  {PERSONAL_INFO.location}
+                  {personalInfo.location}
                 </span>
                 <a
-                  href={PERSONAL_INFO.github}
+                  href={personalInfo.github}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-[#00FF41] hover:underline"
@@ -135,12 +142,12 @@ ${SKILLS_DATA.map((s) => `${s.comment}: ${s.title}`).join('\n')}
             </div>
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-white/20 flex-shrink-0 bg-[#1A1C1C]">
               <img
-                src={PERSONAL_INFO.avatarUrl}
-                alt={PERSONAL_INFO.name}
+                src={personalInfo.avatarUrl}
+                alt={personalInfo.name}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = PERSONAL_INFO.fallbackAvatarUrl;
+                  (e.currentTarget as HTMLImageElement).src = personalInfo.fallbackAvatarUrl;
                 }}
               />
             </div>

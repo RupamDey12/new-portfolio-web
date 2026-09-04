@@ -1,6 +1,6 @@
-import { Project, ExperienceItem, SkillItem } from '../types';
+import { Project, ExperienceItem, SkillItem, PersonalInfo } from '../types';
 
-export const PERSONAL_INFO = {
+export const PERSONAL_INFO: PersonalInfo = {
   handle: '~/rupamdey12/portfolio',
   name: 'Rupam Dey',
   role: 'Software Engineer & Systems Specialist',
@@ -10,7 +10,7 @@ export const PERSONAL_INFO = {
   github: 'https://github.com/RupamDey12',
   githubUsername: 'RupamDey12',
   avatarUrl: 'https://avatars.githubusercontent.com/u/201964261?v=4',
-  fallbackAvatarUrl: './assets/avatar.jpg',
+  fallbackAvatarUrl: 'https://github.com/RupamDey12.png',
   linkedin: 'https://linkedin.com/in/rupam-dey',
   status: 'Operational',
   location: 'Global / Remote',

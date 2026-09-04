@@ -1,27 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight, Download, Check, Copy } from 'lucide-react';
 import AlgorithmVisualizer from './AlgorithmVisualizer';
 import { PERSONAL_INFO } from '../data/portfolioData';
+import { PersonalInfo } from '../types';
 import avatarImg from '../assets/images/rupam_dey_avatar_1788547507320.jpg';
 
 interface HeroSectionProps {
+  personalInfo?: PersonalInfo;
   onExecuteProjects: () => void;
   onDownloadResume: () => void;
   onShowToast: (msg: string) => void;
 }
 
 export default function HeroSection({
+  personalInfo = PERSONAL_INFO,
   onExecuteProjects,
   onDownloadResume,
   onShowToast,
 }: HeroSectionProps) {
   const [copiedEmail, setCopiedEmail] = useState(false);
-  const [avatarSrc, setAvatarSrc] = useState<string>(PERSONAL_INFO.avatarUrl);
+  const [avatarSrc, setAvatarSrc] = useState<string>(personalInfo.avatarUrl);
+
+  // Synchronize avatar whenever personalInfo is updated from GitHub
+  useEffect(() => {
+    if (personalInfo.avatarUrl) {
+      setAvatarSrc(personalInfo.avatarUrl);
+    }
+  }, [personalInfo.avatarUrl, personalInfo.updatedAt]);
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText(PERSONAL_INFO.email);
+    navigator.clipboard.writeText(personalInfo.email);
     setCopiedEmail(true);
-    onShowToast('Email copied to clipboard: ' + PERSONAL_INFO.email);
+    onShowToast('Email copied to clipboard: ' + personalInfo.email);
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
@@ -45,16 +55,17 @@ export default function HeroSection({
               <div className="relative">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-[#1A1C1C]">
                   <img
+                    key={avatarSrc}
                     src={avatarSrc}
-                    alt={PERSONAL_INFO.name}
+                    alt={personalInfo.name}
                     className="w-full h-full object-cover rounded-full"
                     referrerPolicy="no-referrer"
                     onError={() => {
                       // Fallback cascade: GitHub direct -> Local downloaded -> Generated asset
-                      if (avatarSrc === PERSONAL_INFO.avatarUrl) {
-                        setAvatarSrc(`https://github.com/${PERSONAL_INFO.githubUsername}.png`);
+                      if (avatarSrc === personalInfo.avatarUrl) {
+                        setAvatarSrc(`https://github.com/${personalInfo.githubUsername}.png?size=200`);
                       } else if (avatarSrc.includes('github')) {
-                        setAvatarSrc(PERSONAL_INFO.fallbackAvatarUrl);
+                        setAvatarSrc(personalInfo.fallbackAvatarUrl);
                       } else if (avatarSrc !== avatarImg) {
                         setAvatarSrc(avatarImg);
                       }
@@ -62,7 +73,10 @@ export default function HeroSection({
                   />
                 </div>
                 {/* Green online pulse status badge */}
-                <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#00FF41] border-2 border-[#121414] glow-green" />
+                <div 
+                  className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#00FF41] border-2 border-[#121414] glow-green" 
+                  title="GitHub Profile Synchronized"
+                />
               </div>
 
               <div>
@@ -70,14 +84,14 @@ export default function HeroSection({
                   <span>&gt; whoami</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight font-display">
-                  {PERSONAL_INFO.name}
+                  {personalInfo.name}
                 </h1>
               </div>
             </div>
 
             {/* Bio */}
             <p className="text-sm sm:text-base text-gray-300 leading-relaxed mb-6 font-mono">
-              {PERSONAL_INFO.bio}
+              {personalInfo.bio}
             </p>
 
             {/* Contact Email Pill */}
@@ -89,7 +103,7 @@ export default function HeroSection({
               >
                 <Mail className="w-3.5 h-3.5 text-[#00FF41] group-hover:scale-110 transition-transform" />
                 <span className="underline decoration-dotted decoration-gray-500 underline-offset-4">
-                  {PERSONAL_INFO.email}
+                  {personalInfo.email}
                 </span>
                 {copiedEmail ? (
                   <Check className="w-3.5 h-3.5 text-[#00FF41] ml-1" />

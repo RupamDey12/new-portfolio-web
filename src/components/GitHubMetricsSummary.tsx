@@ -17,10 +17,11 @@ import { PERSONAL_INFO } from '../data/portfolioData';
 
 interface GitHubMetricsSummaryProps {
   onShowToast?: (message: string) => void;
+  onSyncAll?: () => Promise<void> | void;
   className?: string;
 }
 
-export default function GitHubMetricsSummary({ onShowToast, className = '' }: GitHubMetricsSummaryProps) {
+export default function GitHubMetricsSummary({ onShowToast, onSyncAll, className = '' }: GitHubMetricsSummaryProps) {
   const [metrics, setMetrics] = useState<GitHubMetrics>(FALLBACK_METRICS);
   const [loading, setLoading] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -29,10 +30,13 @@ export default function GitHubMetricsSummary({ onShowToast, className = '' }: Gi
   const loadMetrics = async (showNotification = false) => {
     setLoading(true);
     try {
+      if (onSyncAll) {
+        await onSyncAll();
+      }
       const data = await fetchGitHubMetrics(PERSONAL_INFO.githubUsername);
       setMetrics(data);
       if (showNotification && onShowToast) {
-        onShowToast(`Synced GitHub telemetry: ${data.totalContributions} contribs, ${data.followers} followers`);
+        onShowToast(`Synced GitHub profile, repos & telemetry (${data.totalContributions} contribs, ${data.followers} followers)`);
       }
     } catch {
       // Fallback already in place

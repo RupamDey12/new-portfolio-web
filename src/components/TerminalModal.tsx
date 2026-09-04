@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Terminal as TerminalIcon, Maximize2, Minimize2 } from 'lucide-react';
 import { PERSONAL_INFO, PROJECTS_DATA, EXPERIENCE_DATA, SKILLS_DATA } from '../data/portfolioData';
-import { Project } from '../types';
+import { Project, PersonalInfo } from '../types';
 
 interface TerminalModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface TerminalModalProps {
   onNavigate: (section: string) => void;
   onToggleShader: () => void;
   projects?: Project[];
+  personalInfo?: PersonalInfo;
 }
 
 interface CommandLog {
@@ -22,6 +23,7 @@ export default function TerminalModal({
   onNavigate,
   onToggleShader,
   projects,
+  personalInfo = PERSONAL_INFO,
 }: TerminalModalProps) {
   const [inputVal, setInputVal] = useState('');
   const [history, setHistory] = useState<CommandLog[]>([
@@ -29,7 +31,7 @@ export default function TerminalModal({
       command: 'sys.init --environment=production',
       output: (
         <div className="text-gray-400 space-y-1">
-          <p className="text-[#00FF41]">Welcome to Rupam Dey&apos;s Interactive Shell [Obsidian OS 2.4]</p>
+          <p className="text-[#00FF41]">Welcome to {personalInfo.name}&apos;s Interactive Shell [Obsidian OS 2.4]</p>
           <p>Type <span className="text-[#00F3FF] font-bold">help</span> to view all available commands or <span className="text-[#00F3FF] font-bold">exit</span> to close.</p>
         </div>
       ),
@@ -82,11 +84,11 @@ export default function TerminalModal({
       case 'whoami':
         response = (
           <div className="text-gray-300 space-y-1">
-            <p className="text-white font-bold">{PERSONAL_INFO.name}</p>
-            <p className="text-gray-400">{PERSONAL_INFO.bio}</p>
-            <p className="text-[#00FF41]">Status: {PERSONAL_INFO.status}</p>
-            <p className="text-[#00F3FF]">Email: {PERSONAL_INFO.email}</p>
-            <p className="text-gray-300">GitHub: <span className="text-[#00F3FF]">{PERSONAL_INFO.github}</span></p>
+            <p className="text-white font-bold">{personalInfo.name}</p>
+            <p className="text-gray-400">{personalInfo.bio}</p>
+            <p className="text-[#00FF41]">Status: {personalInfo.status}</p>
+            <p className="text-[#00F3FF]">Email: {personalInfo.email}</p>
+            <p className="text-gray-300">GitHub: <span className="text-[#00F3FF]">{personalInfo.github}</span></p>
           </div>
         );
         break;
@@ -165,9 +167,9 @@ export default function TerminalModal({
       case 'contact':
         response = (
           <div className="text-xs space-y-1">
-            <p className="text-white">Direct Channel: <span className="text-[#00FF41]">{PERSONAL_INFO.email}</span></p>
-            <p className="text-white">GitHub: <span className="text-[#00F3FF]">{PERSONAL_INFO.github}</span></p>
-            <p className="text-white">LinkedIn: <span className="text-[#00F3FF]">{PERSONAL_INFO.linkedin}</span></p>
+            <p className="text-white">Direct Channel: <span className="text-[#00FF41]">{personalInfo.email}</span></p>
+            <p className="text-white">GitHub: <span className="text-[#00F3FF]">{personalInfo.github}</span></p>
+            <p className="text-white">LinkedIn: <span className="text-[#00F3FF]">{personalInfo.linkedin}</span></p>
           </div>
         );
         break;

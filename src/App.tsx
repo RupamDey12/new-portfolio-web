@@ -12,9 +12,9 @@ import BenchmarkModal from './components/BenchmarkModal';
 import ResumeModal from './components/ResumeModal';
 import SettingsModal from './components/SettingsModal';
 import ToastNotification from './components/ToastNotification';
-import { Project } from './types';
+import { Project, PersonalInfo } from './types';
 import { PERSONAL_INFO, PROJECTS_DATA } from './data/portfolioData';
-import { fetchGitHubRepos } from './services/githubService';
+import { fetchGitHubRepos, fetchGitHubUserProfile } from './services/githubService';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('root');
@@ -22,8 +22,41 @@ export default function App() {
   const [shaderIntensity, setShaderIntensity] = useState(1.0);
   const [scanlinesEnabled, setScanlinesEnabled] = useState(true);
 
-  // Projects state initialized with verified local cluster data + dynamic GitHub fetching
-  const [projects, setProjects] = useState<Project[]>(PROJECTS_DATA);
+  // Dynamic personal profile state initialized from cached GitHub data or portfolio defaults
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>(() => {
+    try {
+      const cached = localStorage.getItem(`gh_user_profile_${PERSONAL_INFO.githubUsername}`);
+      if (cached) {
+        const u = JSON.parse(cached);
+        return {
+          ...PERSONAL_INFO,
+          name: u.name || PERSONAL_INFO.name,
+          bio: u.bio || PERSONAL_INFO.bio,
+          avatarUrl: u.avatarUrl || PERSONAL_INFO.avatarUrl,
+          location: u.location || PERSONAL_INFO.location,
+          publicRepos: u.publicRepos ?? PERSONAL_INFO.publicRepos,
+          followers: u.followers ?? PERSONAL_INFO.followers,
+          following: u.following ?? PERSONAL_INFO.following,
+          blog: u.blog || PERSONAL_INFO.blog,
+          updatedAt: u.updatedAt || PERSONAL_INFO.updatedAt,
+          isLiveGithub: true,
+        };
+      }
+    } catch {}
+    return PERSONAL_INFO;
+  });
+
+  // Projects state initialized with cached GitHub repos or verified cluster data
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const cached = localStorage.getItem(`gh_repos_${PERSONAL_INFO.githubUsername}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return PROJECTS_DATA;
+  });
   const [isLoadingGitHub, setIsLoadingGitHub] = useState(false);
 
   // Modals state
@@ -42,31 +75,83 @@ export default function App() {
     }, 3000);
   }, []);
 
-  // Sync projects from GitHub API
-  const handleSyncGitHub = useCallback(async (notify = true) => {
+  // Synchronize all GitHub data: profile, avatar, bio, repositories, stars, and languages
+  const handleSyncAllGitHub = useCallback(async (notify = false) => {
     setIsLoadingGitHub(true);
     try {
-      const fetched = await fetchGitHubRepos(PERSONAL_INFO.githubUsername);
-      if (fetched && fetched.length > 0) {
-        setProjects(fetched);
-        if (notify) {
-          showToast(`Synced ${fetched.length} repositories from GitHub (@${PERSONAL_INFO.githubUsername})`);
-        }
+      const [profileRes, reposRes] = await Promise.allSettled([
+        fetchGitHubUserProfile(PERSONAL_INFO.githubUsername),
+        fetchGitHubRepos(PERSONAL_INFO.githubUsername),
+      ]);
+
+      let profileUpdated = false;
+      if (profileRes.status === 'fulfilled' && profileRes.value) {
+        const u = profileRes.value;
+        profileUpdated = true;
+        setPersonalInfo((prev) => ({
+          ...prev,
+          name: u.name || prev.name,
+          bio: u.bio || prev.bio,
+          avatarUrl: u.avatarUrl || prev.avatarUrl,
+          location: u.location || prev.location,
+          publicRepos: u.publicRepos ?? prev.publicRepos,
+          followers: u.followers ?? prev.followers,
+          following: u.following ?? prev.following,
+          blog: u.blog || prev.blog,
+          updatedAt: u.updatedAt || new Date().toISOString(),
+          isLiveGithub: true,
+        }));
+      }
+
+      let repoCount = projects.length;
+      if (reposRes.status === 'fulfilled' && reposRes.value && reposRes.value.length > 0) {
+        repoCount = reposRes.value.length;
+        setProjects(reposRes.value);
+      }
+
+      if (notify) {
+        showToast(
+          `Synced with GitHub: ${repoCount} repositories and profile picture updated (@${PERSONAL_INFO.githubUsername})`
+        );
       }
     } catch (err) {
-      console.warn('Could not sync GitHub repos:', err);
+      console.warn('Could not complete GitHub sync:', err);
       if (notify) {
-        showToast('Connected to GitHub repository cluster cache.');
+        showToast('Connected to GitHub repository cluster.');
       }
     } finally {
       setIsLoadingGitHub(false);
     }
-  }, [showToast]);
+  }, [showToast, projects.length]);
 
-  // Initial fetch on mount
+  // Initial fetch on mount + auto-sync when user returns to tab + background polling
   useEffect(() => {
-    handleSyncGitHub(false);
-  }, [handleSyncGitHub]);
+    handleSyncAllGitHub(false);
+
+    // Auto-update when tab regains focus (e.g. user updated GitHub profile or repos in another tab)
+    const handleFocus = () => {
+      handleSyncAllGitHub(false);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleSyncAllGitHub(false);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Periodic live sync every 60 seconds
+    const interval = setInterval(() => {
+      handleSyncAllGitHub(false);
+    }, 60000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
+    };
+  }, [handleSyncAllGitHub]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -106,8 +191,8 @@ export default function App() {
   };
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText(PERSONAL_INFO.email);
-    showToast(`Email copied: ${PERSONAL_INFO.email}`);
+    navigator.clipboard.writeText(personalInfo.email);
+    showToast(`Email copied: ${personalInfo.email}`);
   };
 
   // Keyboard shortcut listener (Ctrl+K, T, R)
@@ -159,6 +244,8 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenShortcuts={() => setIsSettingsOpen(true)}
         onShowToast={showToast}
+        onSyncAll={() => handleSyncAllGitHub(true)}
+        personalInfo={personalInfo}
       />
 
       {/* Main Content Area (offset by header & sidebar) */}
@@ -166,6 +253,7 @@ export default function App() {
         <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-8 lg:px-12 py-6 flex-1 flex flex-col space-y-8">
           {/* Section 1: Hero Section with Terminal Card & Real-time Algorithm Visualizer */}
           <HeroSection
+            personalInfo={personalInfo}
             onExecuteProjects={handleExecuteProjects}
             onDownloadResume={() => setIsResumeOpen(true)}
             onShowToast={showToast}
@@ -175,7 +263,7 @@ export default function App() {
           <ProjectsSection
             projects={projects}
             isLoadingGitHub={isLoadingGitHub}
-            onRefreshGitHub={() => handleSyncGitHub(true)}
+            onRefreshGitHub={() => handleSyncAllGitHub(true)}
             onOpenBenchmark={handleOpenBenchmark}
             onOpenProfile={handleOpenProfile}
             onOpenLoadSimulation={handleOpenLoadSimulation}
@@ -191,6 +279,7 @@ export default function App() {
 
         {/* Footer */}
         <Footer
+          personalInfo={personalInfo}
           onOpenResume={() => setIsResumeOpen(true)}
           onOpenShortcuts={() => setIsSettingsOpen(true)}
         />
@@ -215,6 +304,7 @@ export default function App() {
         onNavigate={handleTabChange}
         onToggleShader={() => setShaderEnabled(!shaderEnabled)}
         projects={projects}
+        personalInfo={personalInfo}
       />
 
       {/* Real-time Telemetry & Benchmark Modal */}
@@ -230,6 +320,7 @@ export default function App() {
         onClose={() => setIsResumeOpen(false)}
         onShowToast={showToast}
         projects={projects}
+        personalInfo={personalInfo}
       />
 
       {/* System Preferences / Shader & Shortcuts Modal */}
