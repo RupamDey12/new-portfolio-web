@@ -52,8 +52,8 @@
         100% { transform: translateX(200%); }
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-B6dgxFTx.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-C_nCfrRc.css">
+    <script type="module" crossorigin src="./assets/index-MWkmbIHo.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-wKLUHs7u.css">
   </head>
   <body class="bg-[#0D0D0D] text-[#e3e2e2] antialiased selection:bg-[#00FF41]/30 selection:text-[#00FF41]" style="background-color: #0D0D0D; color: #e3e2e2; margin: 0;">
     <div id="root">
@@ -64,6 +64,25 @@
         </div>
       </div>
     </div>
+    <script>
+      // GitHub Pages Auto-Recovery:
+      // If GitHub Pages is serving the raw repository root (where /src/main.tsx is uncompiled),
+      // instantly forward to the compiled production build in /docs/
+      (function() {
+        try {
+          var isGitHub = window.location.hostname.indexOf('github.io') !== -1;
+          var hasUncompiledScript = !!document.querySelector('script[src*="/src/main.tsx"]');
+          var inDocs = window.location.pathname.indexOf('/docs') !== -1;
+          if (isGitHub && hasUncompiledScript && !inDocs) {
+            var base = window.location.pathname.replace(/\/+$/, '');
+            var targetUrl = window.location.origin + base + '/docs/' + window.location.search + window.location.hash;
+            window.location.replace(targetUrl);
+          }
+        } catch (e) {
+          console.warn('Navigation recovery error:', e);
+        }
+      })();
+    </script>
   </body>
 </html>
 
