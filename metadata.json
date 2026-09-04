@@ -1,0 +1,6 @@
+{
+  "name": "Obsidian Protocol Portfolio",
+  "description": "Developer-core engineering portfolio featuring WebGL matrix shaders, real-time algorithm visualizer, project console, and Obsidian Protocol styling for Rupam Dey.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
