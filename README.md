@@ -10,20 +10,23 @@ A developer-core, cyber-themed interactive software engineering portfolio for **
 - **Interactive Algorithm Visualizer**: Real-time pathfinding (A*, Dijkstra, BFS) and sorting visualizations with adjustable step speed and particle physics canvas.
 - **Obsidian Protocol & Matrix Shaders**: Customizable WebGL matrix rain shader background, CRT scanlines, sound toggles, and system preferences.
 
-## GitHub Pages Deployment
+## GitHub Pages Deployment & Blank Screen Fix
 
-This repository is optimized for GitHub Pages out of the box:
+### Why the blank white screen occurred
+1. When publishing to GitHub Pages with the default setting (`Deploy from a branch -> main / (root)`), GitHub served the **raw unbuilt source files**. The browser received `<script type="module" src="/src/main.tsx">`, which browsers cannot run without compiling, causing a 404 error and a blank white screen.
+2. The automatic CI workflow previously failed on `setup-node` because of a lockfile caching constraint.
 
-- **Relative Asset Resolution**: Configured with `base: './'` in `vite.config.ts` so the portfolio runs seamlessly at root domains or nested repository subpaths (`https://<username>.github.io/<repo>/`).
-- **Automated CI/CD Workflow**: A production-ready GitHub Actions workflow is included at `.github/workflows/deploy.yml`.
-- **SPA Fallback & Jekyll Bypass**: Includes automatic `404.html` fallback generation and `.nojekyll` handling.
+### How it is fixed
+- Fixed `.github/workflows/deploy.yml` so it automatically builds Vite with `npm install --include=dev` and deploys the production bundle.
+- Generated and included `package-lock.json`.
+- Added pre-built `/docs` directory output as a secondary direct-branch publishing option.
+- Configured `base: './'` in `vite.config.ts` so all assets resolve correctly regardless of domain or repo subpath.
 
-### How to Enable GitHub Pages
-
-1. Push this repository to GitHub (e.g., `https://github.com/RupamDey12/portfolio-web`).
-2. In your repository on GitHub, go to **Settings** > **Pages**.
-3. Under **Build and deployment** > **Source**, select **GitHub Actions**.
-4. The workflow will automatically build and publish your portfolio on every push to `main`.
+### 2-Step Activation on GitHub:
+1. In your GitHub repository (e.g. `new-portfolio-web` or `portfolio-web`), navigate to **Settings** > **Pages** on the left menu.
+2. Under **Build and deployment** > **Source**:
+   - **Recommended Method**: Select **GitHub Actions**. The automated workflow (`deploy.yml`) will build and deploy the compiled site automatically.
+   - **Alternative Method**: If you prefer "Deploy from a branch", choose **Branch: main** and set the folder dropdown to **/docs**, then click **Save**.
 
 ## Local Development
 
