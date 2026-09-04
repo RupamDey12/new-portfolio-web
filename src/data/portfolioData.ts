@@ -10,7 +10,7 @@ export const PERSONAL_INFO = {
   github: 'https://github.com/RupamDey12',
   githubUsername: 'RupamDey12',
   avatarUrl: 'https://avatars.githubusercontent.com/u/201964261?v=4',
-  fallbackAvatarUrl: '/assets/avatar.jpg',
+  fallbackAvatarUrl: './assets/avatar.jpg',
   linkedin: 'https://linkedin.com/in/rupam-dey',
   status: 'Operational',
   location: 'Global / Remote',

@@ -172,3 +172,111 @@ export async function fetchGitHubRepos(username: string = 'RupamDey12'): Promise
     return GITHUB_FALLBACK_REPOS;
   }
 }
+
+export interface GitHubMetrics {
+  username: string;
+  followers: number;
+  following: number;
+  publicRepos: number;
+  totalContributions: number;
+  currentYearContributions: number;
+  updatedAt: string;
+  isLive: boolean;
+  isLoading: boolean;
+}
+
+export const FALLBACK_METRICS: GitHubMetrics = {
+  username: 'RupamDey12',
+  followers: 0,
+  following: 0,
+  publicRepos: 4,
+  totalContributions: 20,
+  currentYearContributions: 17,
+  updatedAt: new Date().toISOString(),
+  isLive: false,
+  isLoading: false,
+};
+
+export async function fetchGitHubMetrics(username: string = 'RupamDey12'): Promise<GitHubMetrics> {
+  const cacheKey = `gh_metrics_${username}`;
+  let cachedData: GitHubMetrics | null = null;
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) {
+      cachedData = JSON.parse(raw);
+    }
+  } catch {
+    // Ignore localStorage parse errors
+  }
+
+  let followers = cachedData?.followers ?? FALLBACK_METRICS.followers;
+  let following = cachedData?.following ?? FALLBACK_METRICS.following;
+  let publicRepos = cachedData?.publicRepos ?? FALLBACK_METRICS.publicRepos;
+  let totalContributions = cachedData?.totalContributions ?? FALLBACK_METRICS.totalContributions;
+  let currentYearContributions = cachedData?.currentYearContributions ?? FALLBACK_METRICS.currentYearContributions;
+  let isLive = false;
+
+  try {
+    // 1. Fetch user stats from GitHub REST API
+    const userPromise = fetch(`https://api.github.com/users/${username}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const u = await res.json();
+          followers = typeof u.followers === 'number' ? u.followers : followers;
+          following = typeof u.following === 'number' ? u.following : following;
+          publicRepos = typeof u.public_repos === 'number' ? u.public_repos : publicRepos;
+          isLive = true;
+        }
+      })
+      .catch((err) => {
+        console.warn('GitHub user API fetch error:', err);
+      });
+
+    // 2. Fetch public contribution matrix
+    const contribPromise = fetch(`https://github-contributions-api.jogruber.de/v4/${username}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const c = await res.json();
+          if (c && c.total) {
+            const totalObj = c.total as Record<string, number | string>;
+            const sum: number = Object.values(totalObj).reduce<number>((acc, val) => acc + Number(val || 0), 0);
+            if (sum > 0) {
+              totalContributions = sum;
+              const curYear = new Date().getFullYear().toString();
+              currentYearContributions = Number(totalObj[curYear] ?? totalObj['2026'] ?? sum);
+              isLive = true;
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('GitHub contributions API fetch error:', err);
+      });
+
+    await Promise.allSettled([userPromise, contribPromise]);
+
+    const result: GitHubMetrics = {
+      username,
+      followers,
+      following,
+      publicRepos,
+      totalContributions,
+      currentYearContributions,
+      updatedAt: new Date().toISOString(),
+      isLive,
+      isLoading: false,
+    };
+
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(result));
+    } catch {
+      // Ignore quota errors
+    }
+
+    return result;
+  } catch (e) {
+    console.warn('Error fetching GitHub metrics:', e);
+    return cachedData || FALLBACK_METRICS;
+  }
+}
+

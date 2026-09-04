@@ -11,6 +11,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { PERSONAL_INFO } from '../data/portfolioData';
+import GitHubMetricsSummary from './GitHubMetricsSummary';
 
 interface NavigationProps {
   activeTab: string;
@@ -19,6 +20,7 @@ interface NavigationProps {
   onOpenCommandPalette: () => void;
   onOpenSettings: () => void;
   onOpenShortcuts: () => void;
+  onShowToast?: (msg: string) => void;
 }
 
 export default function Navigation({
@@ -28,6 +30,7 @@ export default function Navigation({
   onOpenCommandPalette,
   onOpenSettings,
   onOpenShortcuts,
+  onShowToast,
 }: NavigationProps) {
   const navItems = [
     { id: 'root', label: 'root' },
@@ -76,8 +79,11 @@ export default function Navigation({
           })}
         </nav>
 
-        {/* Right: Quick actions */}
+        {/* Right: GitHub telemetry summary & Quick actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Dynamic GitHub metrics summary */}
+          <GitHubMetricsSummary onShowToast={onShowToast} />
+
           <button
             onClick={onOpenCommandPalette}
             className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#84967e] hover:text-white border border-white/10 hover:border-[#00F3FF]/40 bg-[#1A1C1C] transition-all"

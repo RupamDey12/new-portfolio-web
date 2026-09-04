@@ -158,6 +158,7 @@ export default function App() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenShortcuts={() => setIsSettingsOpen(true)}
+        onShowToast={showToast}
       />
 
       {/* Main Content Area (offset by header & sidebar) */}
